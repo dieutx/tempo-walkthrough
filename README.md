@@ -1,6 +1,6 @@
-# Tempo CLI Walkthrough
+# Tempo Walkthrough
 
-A practical walkthrough of setting up and using [Tempo](https://tempo.xyz) — a CLI for calling APIs with automatic micropayment handling via USDC.
+A practical walkthrough of using [Tempo](https://tempo.xyz) for paying APIs with USDC — via CLI and programmatically with your own EVM private key.
 
 ## Setup
 
@@ -114,15 +114,76 @@ tempo request -t -X POST --json '{"lat":21.0285,"lon":105.8542,"units":"metric"}
 
 ### 5. Daily Hanoi Weather Forecast to Telegram
 
-See [hanoi-weather.sh](hanoi-weather.sh) — fetches weather via Tempo, translates to Vietnamese using GPT-4o-mini, and sends to a Telegram group.
+Two implementations available:
+
+**Bash (uses Tempo CLI):** [hanoi-weather.sh](hanoi-weather.sh)
+
+**Node.js (uses EVM private key + mppx):** [src/hanoi-weather.ts](src/hanoi-weather.ts)
 
 ```bash
-# Run manually
+# Bash version
 bash hanoi-weather.sh
 
+# Node.js version (bring your own EVM key)
+npm install
+PRIVATE_KEY=0x... TELEGRAM_BOT_TOKEN=... TELEGRAM_CHAT_ID=... npx tsx src/hanoi-weather.ts
+
 # Schedule via crontab (6am UTC+7 = 23:00 UTC)
-# 3 23 * * * /path/to/hanoi-weather.sh
+# 3 23 * * * cd /path/to/repo && npx tsx src/hanoi-weather.ts
 ```
+
+## Using Your Own EVM Private Key (mppx SDK)
+
+Instead of the Tempo CLI, you can use any EVM private key with the [`mppx`](https://www.npmjs.com/package/mppx) SDK. This handles `402 Payment Required` responses automatically.
+
+### Setup
+
+```bash
+npm install mppx viem
+```
+
+### Quick start
+
+```ts
+import { privateKeyToAccount } from "viem/accounts";
+import { Mppx, tempo } from "mppx/client";
+
+const account = privateKeyToAccount("0xYOUR_PRIVATE_KEY");
+const mppx = Mppx.create({
+  polyfill: false,
+  methods: [tempo({ account, maxDeposit: "0.5" })],
+});
+
+// Payment happens automatically on 402 responses
+const res = await mppx.fetch("https://openai.mpp.tempo.xyz/v1/chat/completions", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    model: "gpt-4o-mini",
+    messages: [{ role: "user", content: "Hello" }],
+    max_tokens: 100,
+  }),
+});
+const data = await res.json();
+```
+
+### How it works
+
+1. `mppx.fetch()` sends your request to an MPP-enabled API
+2. Server returns `402` with a payment challenge
+3. SDK signs a Tempo transaction with your private key
+4. Retries with `Authorization: Payment` credential
+5. Server verifies, returns response + receipt
+
+### Key details
+
+| | |
+|---|---|
+| **Network** | Tempo (Chain ID `4217`, RPC `https://rpc.tempo.xyz`) |
+| **Currency** | USDC on Tempo |
+| **Funding** | Bridge USDC via Across, LayerZero, Relay, or use `tempo wallet transfer` |
+| **maxDeposit** | Amount locked per payment channel (unused funds refunded on close) |
+| **Sessions** | For metered APIs (LLMs), channels amortize on-chain costs across many requests |
 
 ## Available Services (55+)
 

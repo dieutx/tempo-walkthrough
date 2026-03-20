@@ -1,0 +1,27 @@
+{
+  "name": "tempo",
+  "version": "1.0.0",
+  "description": "A practical walkthrough of setting up and using [Tempo](https://tempo.xyz) — a CLI for calling APIs with automatic micropayment handling via USDC.",
+  "main": "src/hanoi-weather.ts",
+  "type": "module",
+  "scripts": {
+    "weather": "npx tsx src/hanoi-weather.ts",
+    "test-fetch": "npx tsx src/test-fetch.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dieutx/tempo-walkthrough.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dieutx/tempo-walkthrough/issues"
+  },
+  "homepage": "https://github.com/dieutx/tempo-walkthrough#readme",
+  "dependencies": {
+    "mppx": "^0.4.7",
+    "tsx": "^4.21.0",
+    "viem": "^2.47.5"
+  }
+}
